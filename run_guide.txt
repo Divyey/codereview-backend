@@ -1,0 +1,30 @@
+# === How to Run the Backend (FastAPI) ===
+
+1. Activate your Python virtual environment:
+   source venv/bin/activate
+
+2. Install dependencies (if not already installed):
+   pip install -r requirement.txt
+
+3. Start the FastAPI server (default port 3000):
+   uvicorn app.main:app --reload --port 3000
+
+# === (Optional) Expose Locally Running Server to the Internet ===
+
+4. If you want to expose your local server to GitHub webhooks or external services, use ngrok:
+   # If you don't have ngrok, install it (on Mac):
+   brew install ngrok
+
+   # Start ngrok on port 3000
+   ngrok http 3000
+
+   # Copy the HTTPS forwarding URL ngrok gives you and use it as your webhook endpoint in GitHub.
+
+# === Notes ===
+
+- Make sure your database is set up and available before starting the backend.
+- If you make code changes, the server will auto-reload (because of --reload).
+- To stop the server, press Ctrl+C.
+- To deactivate the virtual environment, run:
+   deactivate
+

@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+alembic==1.16.1
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+httpx
+python-dotenv
+openai
+requests
+# redis==5.0.1
+# celery==5.3.4
+# pip install "bcrypt==4.0.1"
+
