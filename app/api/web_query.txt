@@ -1,7 +1,0 @@
-Querying for Debugging
-
-    See all failed events:
-    SELECT * FROM webhook_events WHERE status = 'failed';
-
-    See all unprocessed events:
-    SELECT * FROM webhook_events WHERE processed = false;

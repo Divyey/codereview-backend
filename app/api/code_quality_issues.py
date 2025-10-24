@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.models.code_quality_issue import CodeQualityIssue
+from app.models.repository import Repository
 from app.schemas.code_quality_issue import (
     CodeQualityIssue as CodeQualityIssueSchema,
     CodeQualityIssueCreate,
