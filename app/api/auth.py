@@ -96,6 +96,8 @@ def login_json(request: LoginRequest, response: Response, db: Session = Depends(
         path="/"
     )
     return {
+        "access_token": access_token,
+        "token_type": "bearer",
         "user": {
             "id": user.id,
             "username": user.username,

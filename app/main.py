@@ -9,6 +9,8 @@ from app.api.webhooks import router as webhooks_router
 from app.api.code_quality_issues import router as code_quality_router
 from app.api.security_findings import router as security_router
 from app.api.dashboard import router as dashboard_router
+from app.api.optimized_dashboard import router as optimized_dashboard_router
+from app.api.smart_repository import router as smart_repository_router
 import logging
 
 logging.basicConfig(
@@ -44,10 +46,12 @@ app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 # app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(pull_requests_router, prefix="/api/pull_requests", tags=["pull_requests"])
 app.include_router(repositories_router, prefix="/api/repositories", tags=["repositories"])
+app.include_router(smart_repository_router, prefix="/api/smart-repositories", tags=["smart-repositories"])
 app.include_router(webhooks_router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(code_quality_router, prefix="/api/code-quality-issues", tags=["Code Quality"])
 app.include_router(security_router, prefix="/api/security-findings", tags=["Security"])
 app.include_router(dashboard_router, prefix="/api", tags=["dashboard"])
+app.include_router(optimized_dashboard_router, prefix="/api", tags=["optimized-dashboard"])
 
 @app.get("/")
 def read_root():

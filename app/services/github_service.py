@@ -138,22 +138,52 @@ class GitHubService:
         except Exception:
             return None
 
-    async def get_pull_requests(self, owner: str, repo: str, state: str = "open") -> list:
-        """
-        Fetch all pull requests for a repo. State can be "open", "closed", or "all".
-        """
-        url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
-        params = {"state": state, "per_page": 100}
+    async def get_user(self) -> Dict[str, Any]:
+        """Get current authenticated user info."""
+        url = f"{self.base_url}/user"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
-                response = await client.get(url, headers=self.headers, params=params)
+                response = await client.get(url, headers=self.headers)
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 401:
+                    raise HTTPException(status_code=401, detail="Invalid or expired GitHub token")
+                else:
+                    raise HTTPException(status_code=response.status_code, detail=f"GitHub API error: {response.text}")
             except httpx.ConnectTimeout:
                 raise HTTPException(status_code=504, detail="GitHub API timed out")
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 404:
-                raise HTTPException(status_code=404, detail="GitHub: PRs not found or access denied")
-            elif response.status_code == 403:
-                raise HTTPException(status_code=403, detail="GitHub: Forbidden (rate limit or insufficient token scope)")
-            else:
-                raise HTTPException(status_code=response.status_code, detail=f"GitHub API error: {response.text}")
+
+    async def get_pull_requests(self, owner: str, repo: str, state: str = "open") -> list:
+        """
+        Fetch all pull requests for a repo with pagination. State can be "open", "closed", or "all".
+        """
+        all_prs = []
+        page = 1
+        per_page = 100
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            while True:
+                url = f"{self.base_url}/repos/{owner}/{repo}/pulls"
+                params = {"state": state, "per_page": per_page, "page": page}
+                
+                try:
+                    response = await client.get(url, headers=self.headers, params=params)
+                except httpx.ConnectTimeout:
+                    raise HTTPException(status_code=504, detail="GitHub API timed out")
+                
+                if response.status_code == 200:
+                    prs = response.json()
+                    if not prs:  # No more PRs
+                        break
+                    all_prs.extend(prs)
+                    if len(prs) < per_page:  # Last page
+                        break
+                    page += 1
+                elif response.status_code == 404:
+                    raise HTTPException(status_code=404, detail="GitHub: Repository not found or access denied")
+                elif response.status_code == 403:
+                    raise HTTPException(status_code=403, detail="GitHub: Forbidden (rate limit or insufficient token scope)")
+                else:
+                    raise HTTPException(status_code=response.status_code, detail=f"GitHub API error: {response.text}")
+        
+        return all_prs

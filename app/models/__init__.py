@@ -6,6 +6,9 @@ from .pr_file import PRFile
 from .pull_request_analysis_history import PullRequestAnalysisHistory
 from .code_quality_issue import CodeQualityIssue
 from .security_finding import SecurityFinding
+from .sca_finding import SCAFinding
+from .secret_finding import SecretFinding
+from .infra_finding import InfraFinding
 from .pr_comment import PRComment
 from .pull_request_review import PullRequestReview
 from .branch import Branch
