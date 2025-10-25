@@ -90,8 +90,8 @@ def login_json(request: LoginRequest, response: Response, db: Session = Depends(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,        # Set to True in production
-        samesite="lax",
+        secure=settings.ENV == "production",  # Only HTTPS in production
+        samesite="strict" if settings.ENV == "production" else "lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )

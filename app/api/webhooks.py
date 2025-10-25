@@ -69,7 +69,6 @@ def verify_github_signature(secret: str, body: bytes, signature: str) -> bool:
         # Use compare_digest for constant-time comparison to prevent timing attacks
         return hmac.compare_digest(mac.hexdigest(), signature_hash)
     except Exception as e:
-        # Optionally log the exception for debugging
         print(f"Signature verification error: {e}")
         return False
 
@@ -169,9 +168,6 @@ async def analyze_pr_background(pr_id: int, commit_sha: str, db):
         count += 1
 
     db.commit()
-    # debug test
-    # analysis = await ai_service.analyze_code(files_data)
-    # print("AI analysis issues:", analysis.get("issues"))
 
     print(f"✅ {count} code quality issues saved for PR #{pr.id}\n")
 

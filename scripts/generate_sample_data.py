@@ -7,7 +7,7 @@ Generates realistic pull request data, security findings, and code quality issue
 import sys
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 from faker import Faker
 import json
 
@@ -17,8 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.core.database import SessionLocal, engine
 from app.models import (
     User, Repository, PullRequest, PRFile, SecurityFinding, 
-    CodeQualityIssue, PRComment, PullRequestReview, Branch, Commit,
-    SCAFinding, SecretFinding, InfraFinding
+    CodeQualityIssue, PRComment, PullRequestReview, Branch
 )
 from app.models import Base
 
@@ -74,7 +73,7 @@ def create_sample_users(db, count=10):
 def create_sample_repositories(db, users, count=20):
     """Create sample repositories"""
     repositories = []
-    for i in range(count):
+    for _ in range(count):
         owner = random.choice(users)
         lang = random.choice(PROGRAMMING_LANGUAGES)
         repo_name = f"{fake.word()}-{lang.lower()}-{fake.word()}"
@@ -83,7 +82,7 @@ def create_sample_repositories(db, users, count=20):
             name=repo_name,
             full_name=f"{owner.username}/{repo_name}",
             owner_id=owner.id,
-            default_branch="main",
+            default_branch="development",
             is_private=fake.boolean(chance_of_getting_true=30),
             description=fake.text(max_nb_chars=200),
             github_id=fake.random_int(min=100000, max=9999999),
@@ -100,18 +99,18 @@ def create_sample_branches(db, repositories, count_per_repo=5):
     """Create sample branches for repositories"""
     branches = []
     for repo in repositories:
-        # Always create main branch
-        main_branch = Branch(
-            name="main",
+        # Always create development branch
+        development_branch = Branch(
+            name="development",
             repository_id=repo.id,
             last_commit_sha=fake.sha1(),
             last_pushed_at=fake.date_time_between(start_date=repo.created_at, end_date='now')
         )
-        db.add(main_branch)
-        branches.append(main_branch)
+        db.add(development_branch)
+        branches.append(development_branch)
         
         # Create feature branches
-        for i in range(random.randint(2, count_per_repo)):
+        for _ in range(random.randint(2, count_per_repo)):
             branch_name = f"feature/{fake.word()}-{fake.word()}"
             branch = Branch(
                 name=branch_name,
@@ -129,7 +128,7 @@ def create_sample_pull_requests(db, repositories, users, count=100):
     """Create sample pull requests with realistic data"""
     pull_requests = []
     
-    for i in range(count):
+    for _ in range(count):
         repo = random.choice(repositories)
         author = random.choice(users)
         
@@ -158,7 +157,7 @@ def create_sample_pull_requests(db, repositories, users, count=100):
             title=fake.sentence(nb_words=6),
             description=fake.text(max_nb_chars=500),
             branch=f"feature/{fake.word()}-{fake.word()}",
-            base_branch="main",
+            base_branch="development",
             status=status,
             github_id=fake.random_int(min=100000, max=9999999),
             github_url=f"https://github.com/{repo.full_name}/pull/{fake.random_int(min=1, max=999)}",
@@ -218,7 +217,7 @@ def create_sample_pr_files(db, pull_requests):
         extensions = FILE_EXTENSIONS[lang]
         
         # Create 1-10 files per PR
-        for i in range(random.randint(1, min(10, pr.changed_files))):
+        for _ in range(random.randint(1, min(10, pr.changed_files))):
             filename = f"{fake.word()}/{fake.word()}{random.choice(extensions)}"
             
             pr_file = PRFile(
@@ -251,7 +250,7 @@ def create_sample_security_findings(db, pull_requests, pr_files):
                 continue
                 
             # Create 1-5 security findings per PR
-            for i in range(random.randint(1, 5)):
+            for _ in range(random.randint(1, 5)):
                 pr_file = random.choice(pr_file_subset)
                 finding_type = random.choice(SECURITY_FINDING_TYPES)
                 severity = random.choice(SEVERITY_LEVELS)
@@ -291,7 +290,7 @@ def create_sample_code_quality_issues(db, pull_requests, pr_files):
                 continue
                 
             # Create 1-8 quality issues per PR
-            for i in range(random.randint(1, 8)):
+            for _ in range(random.randint(1, 8)):
                 pr_file = random.choice(pr_file_subset)
                 issue_type = random.choice(CODE_QUALITY_ISSUES)
                 severity = random.choice(['High', 'Medium', 'Low'])
@@ -323,7 +322,7 @@ def create_sample_comments_and_reviews(db, pull_requests, users):
         # 70% chance of having comments
         if random.random() < 0.7:
             # Create 1-5 comments per PR
-            for i in range(random.randint(1, 5)):
+            for _ in range(random.randint(1, 5)):
                 commenter = random.choice(users)
                 comment = PRComment(
                     content=fake.text(max_nb_chars=300),
@@ -400,7 +399,7 @@ def main():
         comments, reviews = create_sample_comments_and_reviews(db, pull_requests, users)
         
         print("✅ Sample data generation completed!")
-        print(f"Generated:")
+        print("Generated:")
         print(f"  - {len(users)} users")
         print(f"  - {len(repositories)} repositories")
         print(f"  - {len(branches)} branches")

@@ -1,18 +1,13 @@
-# Environment variables
-.env
-.env.local
-.env.production
-.env.staging
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyc
-*.pyo
-*.pyd
 *.so
 .Python
+env/
+venv/
+ENV/
+.venv
 build/
 develop-eggs/
 dist/
@@ -28,27 +23,70 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# Virtual environments
-venv/
-env/
-ENV/
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+.project
+.pydevproject
+.settings/
 
-# Database
-*.db
-*.sqlite3
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.hypothesis/
 
 # Logs
 *.log
 logs/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# OS
-.DS_Store
-Thumbs.db
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# Alembic
+# Keep versions/ folder but ignore specific migration files if needed

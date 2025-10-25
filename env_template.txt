@@ -26,4 +26,3 @@ SLACK_WEBHOOK_URL=your_slack_webhook_url
 
 # Redis Configuration (Optional - for caching)
 REDIS_URL=redis://localhost:6379
-

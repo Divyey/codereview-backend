@@ -17,3 +17,4 @@ def get_secret_finding(finding_id: int, db: Session = Depends(get_db)):
     return finding
 
 # TODO: Add filtering by secret_type, repo, PR, etc.
+

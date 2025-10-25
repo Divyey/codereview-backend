@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, validator
 import re
@@ -353,7 +351,7 @@ async def add_repository(
             github_id=repo_info['id'],
             url=repo_info['html_url'],
             description=repo_info.get('description'),
-            default_branch=repo_info.get('default_branch', 'main'),
+            default_branch=repo_info.get('default_branch', 'development'),
             is_private=repo_info.get('private', False)
         )
         

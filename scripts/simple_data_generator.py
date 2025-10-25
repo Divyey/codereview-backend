@@ -5,10 +5,8 @@ Simple Data Generator for CodeReviewPro - Debug Version
 
 import sys
 import os
-import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from faker import Faker
-import json
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -58,7 +56,7 @@ def main():
             name="test-repo",
             full_name="testuser/test-repo",
             owner_id=user.id,
-            default_branch="main",
+            default_branch="development",
             is_private=False,
             description="Test repository",
             github_id=67890,
@@ -75,7 +73,7 @@ def main():
             title="Test PR",
             description="Test pull request",
             branch="feature/test",
-            base_branch="main",
+            base_branch="development",
             status="open",
             repository_id=repo.id,
             author_id=user.id
@@ -84,7 +82,7 @@ def main():
         db.commit()
         
         print("✅ Simple data generation completed!")
-        print(f"Created 1 user, 1 repository, 1 pull request")
+        print("Created 1 user, 1 repository, 1 pull request")
         
     except Exception as e:
         print(f"❌ Error generating sample data: {e}")

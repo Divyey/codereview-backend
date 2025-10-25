@@ -7,7 +7,7 @@ Creates realistic data for testing the optimized dashboard
 import sys
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 from faker import Faker
 import json
 
@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.core.database import SessionLocal, engine
 from app.models import (
     User, Repository, PullRequest, PRFile, SecurityFinding, 
-    CodeQualityIssue, PRComment, PullRequestReview, Branch
+    CodeQualityIssue
 )
 from app.models import Base
 from sqlalchemy import text
@@ -54,7 +54,7 @@ def create_comprehensive_data(db, user_id):
     
     # Create 5 repositories
     repositories = []
-    for i in range(5):
+    for _ in range(5):
         lang = random.choice(PROGRAMMING_LANGUAGES)
         repo_name = f"{fake.word()}-{lang.lower()}-{fake.word()}"
         
@@ -62,7 +62,7 @@ def create_comprehensive_data(db, user_id):
             name=repo_name,
             full_name=f"testuser/{repo_name}",
             owner_id=user_id,
-            default_branch="main",
+            default_branch="development",
             is_private=random.choice([True, False]),
             description=fake.text(max_nb_chars=200),
             github_id=fake.random_int(min=100000, max=9999999),
@@ -104,7 +104,7 @@ def create_comprehensive_data(db, user_id):
             title=fake.sentence(nb_words=6),
             description=fake.text(max_nb_chars=500),
             branch=f"feature/{fake.word()}-{fake.word()}",
-            base_branch="main",
+            base_branch="development",
             status=status,
             github_id=fake.random_int(min=100000, max=9999999),
             github_url=f"https://github.com/{repo.full_name}/pull/{fake.random_int(min=1, max=999)}",
@@ -296,8 +296,8 @@ def main():
         stats = create_comprehensive_data(db, user.id)
         
         print("✅ Comprehensive data generation completed!")
-        print(f"Generated:")
-        print(f"  - 1 user")
+        print("Generated:")
+        print("  - 1 user")
         print(f"  - {stats['repositories']} repositories")
         print(f"  - {stats['pull_requests']} pull requests")
         print(f"  - {stats['pr_files']} PR files")
