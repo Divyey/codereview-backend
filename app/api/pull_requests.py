@@ -8,7 +8,6 @@ from ..models.pull_request import PullRequest
 from ..models.pr_file import PRFile
 from ..models.repository import Repository
 from ..models.pull_request_analysis_history import PullRequestAnalysisHistory
-from ..schemas.pull_request import GithubImportRequest 
 from ..schemas.pull_request import (
     PullRequestRead as PullRequestSchema,
     PullRequestCreate,
@@ -19,7 +18,35 @@ from ..schemas.pull_request import (
 from ..services.github_service import GitHubService
 from ..services.ai_service import AIService
 from .auth import get_current_user
+from pydantic import BaseModel
+from typing import List, Optional
 from datetime import datetime
+
+class PullRequestListResponse(BaseModel):
+    id: int
+    number: int
+    title: str
+    description: Optional[str] = None
+    branch: str
+    base_branch: Optional[str] = None
+    status: Optional[str] = "open"
+    github_id: Optional[int] = None
+    github_url: Optional[str] = None
+    github_created_at: Optional[datetime] = None
+    github_updated_at: Optional[datetime] = None
+    github_closed_at: Optional[datetime] = None
+    github_merged_at: Optional[datetime] = None
+    github_author: Optional[str] = None
+    ai_score: Optional[float] = None
+    risk_level: Optional[str] = None
+    repository_id: int
+    author_id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
 from app.models.code_quality_issue import CodeQualityIssue as CodeQualityIssueModel
 from app.schemas.code_quality_issue import CodeQualityIssue
 from app.schemas.pr_file import PRFileRead as PRFileSchema
@@ -263,22 +290,55 @@ def mark_review_complete(
         "user_review_time_hours": user_review_time_hours
     }
 
-@router.get("/", response_model=List[PullRequestSchema])
+@router.get("/test")
+def test_pull_requests(
+    current_user: User = Depends(get_current_user)
+):
+    """Simple test endpoint"""
+    return {"message": "Test successful", "user_id": current_user.id}
+
+@router.get("/", response_model=List[PullRequestListResponse])
 def get_pull_requests(
     skip: int = 0,
     limit: int = 100,
     status: Optional[str] = None,
     risk_level: Optional[str] = None,
+    repository_id: Optional[int] = Query(None),
+    branch: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get user's pull requests with optional filtering"""
-    query = db.query(PullRequest).filter(PullRequest.author_id == current_user.id)
-    if status:
-        query = query.filter(PullRequest.status == status)
-    if risk_level:
-        query = query.filter(PullRequest.risk_level == risk_level)
-    return query.offset(skip).limit(limit).all()
+    try:
+        # Get user's repository IDs to ensure they can only access their own PRs
+        user_repo_ids = [repo.id for repo in current_user.repositories]
+        
+        # Base query: filter by repositories owned by the user
+        query = db.query(PullRequest).filter(PullRequest.repository_id.in_(user_repo_ids))
+        
+        # Apply filters
+        if repository_id is not None:
+            if repository_id not in user_repo_ids:
+                raise HTTPException(status_code=404, detail="Repository not found")
+            query = query.filter(PullRequest.repository_id == repository_id)
+        
+        if status:
+            query = query.filter(PullRequest.status == status)
+        
+        if risk_level:
+            query = query.filter(PullRequest.risk_level == risk_level)
+        
+        if branch:
+            query = query.filter(PullRequest.branch == branch)
+        
+        return query.offset(skip).limit(limit).all()
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Error in get_pull_requests: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/{pr_id}", response_model=PullRequestSchema)
 def get_pull_request(

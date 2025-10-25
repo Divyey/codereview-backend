@@ -133,6 +133,115 @@ async def import_repository_from_github(
         db.refresh(repo)
     return repo
 
+@router.post("/{repo_id}/sync-prs")
+async def sync_repository_prs(
+    repo_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Sync all pull requests from GitHub for a repository"""
+    import logging
+    from ..models.pull_request import PullRequest
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting PR sync for repository ID: {repo_id}")
+    
+    # Get repository
+    repository = db.query(Repository).filter(
+        Repository.id == repo_id,
+        Repository.owner_id == current_user.id
+    ).first()
+    if not repository:
+        logger.error(f"Repository not found: {repo_id}")
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    logger.info(f"Syncing PRs for repository: {repository.full_name}")
+    
+    # Parse repository name
+    try:
+        owner, repo_name = repository.full_name.split('/')
+    except ValueError:
+        logger.error(f"Invalid repository full_name format: {repository.full_name}")
+        raise HTTPException(status_code=400, detail="Invalid repository name format")
+    
+    # Get GitHub token
+    token = current_user.github_token or settings.GITHUB_TOKEN
+    if not token:
+        logger.error("No GitHub token available")
+        raise HTTPException(status_code=400, detail="GitHub token required. Please provide a GitHub token in your profile or ensure system token is configured.")
+    
+    github_service = GitHubService(token)
+    
+    try:
+        logger.info(f"Fetching PRs from GitHub for {owner}/{repo_name}")
+        # Get all PRs from GitHub (open and closed)
+        all_prs = await github_service.get_pull_requests(owner, repo_name, state="all")
+        all_prs = all_prs or []
+        
+        logger.info(f"Found {len(all_prs)} PRs on GitHub")
+        
+        synced_count = 0
+        skipped_count = 0
+        
+        for pr_data in all_prs:
+            try:
+                pr_number = pr_data["number"]
+                
+                # Check if PR already exists
+                existing_pr = db.query(PullRequest).filter(
+                    PullRequest.repository_id == repository.id,
+                    PullRequest.number == pr_number
+                ).first()
+                
+                if existing_pr:
+                    skipped_count += 1
+                    continue  # Skip existing PRs
+                
+                # Create new PR
+                pr = PullRequest(
+                    number=pr_number,
+                    title=pr_data["title"],
+                    description=pr_data.get("body"),
+                    branch=pr_data["head"]["ref"],
+                    status="merged" if pr_data.get("merged") else ("closed" if pr_data.get("closed_at") else "open"),
+                    github_id=pr_data["id"],
+                    github_url=pr_data["html_url"],
+                    repository_id=repository.id,
+                    author_id=current_user.id,
+                    files_changed=pr_data.get("changed_files", 0),
+                    lines_added=pr_data.get("additions", 0),
+                    lines_deleted=pr_data.get("deletions", 0),
+                    review_status="Pending",
+                    reviewers=[]
+                )
+                db.add(pr)
+                db.commit()
+                db.refresh(pr)
+                synced_count += 1
+                logger.info(f"Synced PR #{pr_number}: {pr_data['title']}")
+                
+            except Exception as pr_error:
+                logger.error(f"Error syncing PR #{pr_data.get('number', 'unknown')}: {str(pr_error)}")
+                db.rollback()
+                continue
+        
+        logger.info(f"Sync completed: {synced_count} new PRs, {skipped_count} skipped")
+        
+        return {
+            "message": f"Successfully synced {synced_count} new pull requests",
+            "synced_count": synced_count,
+            "skipped_count": skipped_count,
+            "total_found": len(all_prs)
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (from GitHub service)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during PR sync: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to sync PRs: {str(e)}")
+
 @router.get("/", response_model=List[RepositorySchema])
 def get_repositories(
     skip: int = 0,
