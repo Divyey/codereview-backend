@@ -9,6 +9,7 @@ from alembic import context
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from app.core.database import Base
+from app.core.config import settings
 from app.models import (
     User, Repository, PullRequest, PRFile, PullRequestAnalysisHistory,
     CodeQualityIssue, SecurityFinding, PRComment, PullRequestReview
@@ -46,7 +47,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,8 +66,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    section = config.get_section(config.config_ini_section, {})
+    if not section.get("sqlalchemy.url"):
+        section["sqlalchemy.url"] = settings.DATABASE_URL
+        
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
