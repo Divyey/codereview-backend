@@ -139,6 +139,7 @@ async def create_pull_request(
         branch=pr_data.branch,
         status=pr_data.status,
         github_url=pr_data.github_url,
+        github_author=pr_data.github_author,
         repository_id=pr_data.repository_id,
         author_id=current_user.id,
         files_changed=len(pr_data.files) if pr_data.files else 0,
@@ -224,6 +225,7 @@ async def create_pr_from_github(
             status="merged" if pr_data["merged"] else ("closed" if pr_data["closed_at"] else "open"),
             github_id=pr_data["id"],
             github_url=pr_data["html_url"],
+            github_author=pr_data.get("user", {}).get("login"),
             repository_id=repository.id,
             author_id=current_user.id,
             files_changed=pr_data.get("changed_files", 0),
@@ -331,7 +333,7 @@ def get_pull_requests(
         if branch:
             query = query.filter(PullRequest.branch == branch)
         
-        return query.offset(skip).limit(limit).all()
+        return query.order_by(PullRequest.github_created_at.desc()).offset(skip).limit(limit).all()
     except HTTPException:
         raise
     except Exception as e:
@@ -535,7 +537,7 @@ def get_pr_issues(
     return issues
 
 # List all files for a PR
-@router.get("/pull_requests/{pr_id}/files", response_model=List[PRFileSchema])
+@router.get("/{pr_id}/files", response_model=List[PRFileSchema])
 def list_pr_files(
     pr_id: int,
     db: Session = Depends(get_db),

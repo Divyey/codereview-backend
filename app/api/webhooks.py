@@ -378,7 +378,7 @@ async def handle_pull_request_event(payload, background_tasks, db):
         logger.warning("⚠️ Not a pull_request event")
         return {"msg": "Not a pull_request event"}
     logger.info(f"📝 Webhook action: {action}")
-    if action not in ["opened", "synchronize", "reopened"]:
+    if action not in ["opened", "synchronize", "reopened", "closed"]:
         logger.info(f"⏩ Ignored action: {action}")
         return {"msg": f"Ignored action: {action}"}
     owner = repo_data["owner"]["login"]
@@ -438,22 +438,54 @@ async def handle_pull_request_event(payload, background_tasks, db):
             title=pr_info["title"],
             description=pr_info.get("body"),
             branch=pr_info["head"]["ref"],
-            status="merged" if pr_info["merged"] else ("closed" if pr_info["closed_at"] else "open"),
+            status="merged" if pr_info.get("merged") else ("closed" if pr_info.get("closed_at") else "open"),
             github_id=pr_info["id"],
             github_url=pr_info["html_url"],
+            github_author=pr_info.get("user", {}).get("login"),
             repository_id=repository.id,
-            author_id=user.id,  # You may want to store contributor info here if you add a field
+            author_id=user.id,
             files_changed=pr_info.get("changed_files", 0),
             lines_added=pr_info.get("additions", 0),
             lines_deleted=pr_info.get("deletions", 0),
+            github_created_at=datetime.fromisoformat(pr_info["created_at"].replace("Z", "+00:00")) if pr_info.get("created_at") else None,
+            github_updated_at=datetime.fromisoformat(pr_info["updated_at"].replace("Z", "+00:00")) if pr_info.get("updated_at") else None,
+            github_closed_at=datetime.fromisoformat(pr_info["closed_at"].replace("Z", "+00:00")) if pr_info.get("closed_at") else None,
+            github_merged_at=datetime.fromisoformat(pr_info["merged_at"].replace("Z", "+00:00")) if pr_info.get("merged_at") else None,
             review_status="AI only",
             reviewers=[{"type": "AI", "model": "gpt-4o"}]
         )
-        # Optionally: If you add a contributor_github_id field to PullRequest, set it here:
-        # pr.contributor_github_id = contributor.github_id if contributor else None
         db.add(pr)
         db.commit()
         db.refresh(pr)
+    else:
+        # Update existing PR status and timestamps
+        changed = False
+        new_status = "merged" if pr_info.get("merged") else ("closed" if pr_info.get("closed_at") else "open")
+        if pr.status != new_status:
+            pr.status = new_status
+            changed = True
+        
+        if pr_info.get("closed_at") and not pr.github_closed_at:
+            pr.github_closed_at = datetime.fromisoformat(pr_info["closed_at"].replace("Z", "+00:00"))
+            changed = True
+        
+        if pr_info.get("merged_at") and not pr.github_merged_at:
+            pr.github_merged_at = datetime.fromisoformat(pr_info["merged_at"].replace("Z", "+00:00"))
+            changed = True
+
+        if pr_info.get("title") != pr.title:
+            pr.title = pr_info["title"]
+            changed = True
+
+        if changed:
+            db.add(pr)
+            db.commit()
+            logger.info(f"✅ Updated PR #{pr_number} status to {new_status}")
+
+    # If action is 'closed', we don't necessarily need to re-analyze files
+    if action == "closed":
+        return {"msg": f"PR {pr_number} marked as {pr.status}"}
+
     commit_sha = pr_info["head"]["sha"]
     logger.info(f"📂 Fetching PR files for PR #{pr_number}")
     files_data = await github_service.get_pull_request_files(owner, repo_name, pr_number)

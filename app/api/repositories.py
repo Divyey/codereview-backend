@@ -194,10 +194,33 @@ async def sync_repository_prs(
                 ).first()
                 
                 if existing_pr:
+                    # Update status and other fields if they changed
+                    changed = False
+                    new_status = "merged" if pr_data.get("merged") else ("closed" if pr_data.get("closed_at") else "open")
+                    if existing_pr.status != new_status:
+                        existing_pr.status = new_status
+                        changed = True
+                    
+                    if pr_data.get("title") != existing_pr.title:
+                        existing_pr.title = pr_data["title"]
+                        changed = True
+                        
+                    # Backfill github_author if missing
+                    gh_author = pr_data.get("user", {}).get("login")
+                    if gh_author and not existing_pr.github_author:
+                        existing_pr.github_author = gh_author
+                        changed = True
+
+                    if changed:
+                        db.add(existing_pr)
+                        db.commit()
+                        logger.info(f"Updated PR #{pr_number}: {pr_data['title']} (status: {new_status})")
+                    
                     skipped_count += 1
-                    continue  # Skip existing PRs
+                    continue  # Skip creating new, but we might have updated
                 
                 # Create new PR
+                gh_author = pr_data.get("user", {}).get("login")
                 pr = PullRequest(
                     number=pr_number,
                     title=pr_data["title"],
@@ -206,8 +229,9 @@ async def sync_repository_prs(
                     status="merged" if pr_data.get("merged") else ("closed" if pr_data.get("closed_at") else "open"),
                     github_id=pr_data["id"],
                     github_url=pr_data["html_url"],
+                    github_author=gh_author,
                     repository_id=repository.id,
-                    author_id=current_user.id,
+                    author_id=current_user.id, # The user who synced it
                     files_changed=pr_data.get("changed_files", 0),
                     lines_added=pr_data.get("additions", 0),
                     lines_deleted=pr_data.get("deletions", 0),

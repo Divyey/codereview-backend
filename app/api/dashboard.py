@@ -61,7 +61,7 @@ def list_pull_requests(
     pr_query = db.query(PullRequest).filter(PullRequest.repository_id == repo_id)
     if branch:
         pr_query = pr_query.filter(PullRequest.branch == branch)
-    prs = pr_query.order_by(PullRequest.number.desc()).all()
+    prs = pr_query.order_by(PullRequest.github_created_at.desc()).all()
     return [{"id": pr.id, "number": pr.number, "title": pr.title} for pr in prs]
 
 
@@ -222,18 +222,26 @@ def ai_review_stats(
         count = pr_query.filter(func.floor(PullRequest.ai_score) == i).count()
         ai_score_distribution.append({"score": i, "count": count})
 
-    pr_trend = (
-        db.query(
-            func.date(PullRequest.ai_review_completed_at).label("date"),
-            func.count(PullRequest.id).label("count")
-        )
-        .filter(PullRequest.ai_review_completed_at != None)
-        .filter(PullRequest.id.in_(pr_ids) if pr_ids else True)
-        .group_by(func.date(PullRequest.ai_review_completed_at))
-        .order_by(func.date(PullRequest.ai_review_completed_at))
-        .all()
-    )
-    pr_trend = [{"date": str(r.date), "count": r.count} for r in pr_trend]
+    # --- PR Lifecycle Trend (Opened, Merged, Closed) ---
+    # We use a date-range based approach to fill in gaps if necessary, but here we'll just group existing data
+    trend_data = {}
+
+    def add_to_trend(date_obj, key):
+        if not date_obj: return
+        date_str = str(date_obj.date()) if hasattr(date_obj, 'date') else str(date_obj).split(' ')[0]
+        if date_str not in trend_data:
+            trend_data[date_str] = {"date": date_str, "opened": 0, "merged": 0, "closed": 0}
+        trend_data[date_str][key] += 1
+
+    for pr in pr_query:
+        if pr.github_created_at:
+            add_to_trend(pr.github_created_at, "opened")
+        if pr.github_merged_at:
+            add_to_trend(pr.github_merged_at, "merged")
+        elif pr.github_closed_at:
+            add_to_trend(pr.github_closed_at, "closed")
+
+    pr_trend = sorted(trend_data.values(), key=lambda x: x["date"])
 
     return {
         "repo_count": repo_count,

@@ -104,7 +104,7 @@ def get_dashboard_overview(
     ).filter(
         PullRequest.repository_id.in_(user_repo_ids)
     ).order_by(
-        desc(PullRequest.created_at)
+        desc(PullRequest.github_created_at)
     ).limit(10).all()
     
     # Daily trends for the past week
