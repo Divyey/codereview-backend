@@ -102,7 +102,7 @@ class AIService:
       "title": "<concise_title>",
       "description": "<detailed_explanation>",
       "file": "<filename>",
-      "line": <int or null>,
+      "line": <int> or {{"start": <int>, "end": <int>}} or null,
       "code_snippet": "<optional>",
       "impact": "<business_impact>",
       "remediation": "<specific_fix_steps>",
@@ -116,7 +116,7 @@ class AIService:
       "message": "<description>",
       "suggestion": "<actionable_fix>",
       "file": "<filename>",
-      "line": <int or null>
+      "line": <int> or {{"start": <int>, "end": <int>}} or null
     }}
   ],
   "recommendations": [
@@ -151,6 +151,7 @@ class AIService:
 6. Provide **concrete code examples** in remediation when possible
 7. Reference **industry standards** (OWASP, CWE, PEP, etc.) where applicable
 8. Score fairly: 8+ for good code, 6-7 for acceptable, <6 for needs work
+9. **Line numbers**: For issues spanning multiple lines, use {{"start": X, "end": Y}} format. For single-line issues, use integer. If line number is unknown or not applicable, use null.
 
 **Code Changes to Review:**
 

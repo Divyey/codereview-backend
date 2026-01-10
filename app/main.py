@@ -13,6 +13,8 @@ from app.api.security_findings import router as security_router
 from app.api.dashboard import router as dashboard_router
 from app.api.optimized_dashboard import router as optimized_dashboard_router
 from app.api.smart_repository import router as smart_repository_router
+from app.api.user_api_keys import router as user_api_keys_router
+from app.api.sync import router as sync_router
 import logging
 
 logging.basicConfig(
@@ -37,6 +39,7 @@ origins = settings.BACKEND_CORS_ORIGINS if settings.ENV == "production" else [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:8000",
+    "http://localhost:5175",
 ]
 
 app.add_middleware(
@@ -70,7 +73,8 @@ async def limit_request_size(request: Request, call_next):
         )
     return await call_next(request)
 
-app.include_router(user_router)
+# user_router removed - duplicate of repositories_router endpoints (user.py contains repository CRUD, which is already handled by repositories_router)
+# app.include_router(user_router)
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(pull_requests_router, prefix="/api/pull_requests", tags=["pull_requests"])
 app.include_router(repositories_router, prefix="/api/repositories", tags=["repositories"])
@@ -80,6 +84,8 @@ app.include_router(code_quality_router, prefix="/api/code-quality-issues", tags=
 app.include_router(security_router, prefix="/api/security-findings", tags=["Security"])
 app.include_router(dashboard_router, prefix="/api", tags=["dashboard"])
 app.include_router(optimized_dashboard_router, prefix="/api", tags=["optimized-dashboard"])
+app.include_router(user_api_keys_router)
+app.include_router(sync_router, prefix="/api", tags=["sync"])
 
 # Startup validation
 @app.on_event("startup")
