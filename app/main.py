@@ -13,7 +13,7 @@ from app.api.security_findings import router as security_router
 from app.api.dashboard import router as dashboard_router
 from app.api.optimized_dashboard import router as optimized_dashboard_router
 from app.api.smart_repository import router as smart_repository_router
-from app.api.user_api_keys import router as user_api_keys_router
+# from app.api.user_api_keys import router as user_api_keys_router
 from app.api.sync import router as sync_router
 import logging
 
@@ -84,7 +84,7 @@ app.include_router(code_quality_router, prefix="/api/code-quality-issues", tags=
 app.include_router(security_router, prefix="/api/security-findings", tags=["Security"])
 app.include_router(dashboard_router, prefix="/api", tags=["dashboard"])
 app.include_router(optimized_dashboard_router, prefix="/api", tags=["optimized-dashboard"])
-app.include_router(user_api_keys_router)
+# app.include_router(user_api_keys_router)
 app.include_router(sync_router, prefix="/api", tags=["sync"])
 
 # Startup validation

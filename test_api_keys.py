@@ -7,16 +7,18 @@ Run this after starting the backend server to test the API
 import requests
 import json
 
-BASE_URL = "http://localhost:3000"
+BASE_URL = "http://localhost:8000"
 
 def test_api_keys():
     print("🔑 Testing API Keys Management System")
     print("=" * 50)
     
     # Test data
+    import time
+    timestamp = int(time.time())
     test_user = {
-        "username": "testuser",
-        "email": "test@example.com", 
+        "username": f"testuser_{timestamp}",
+        "email": f"test_{timestamp}@example.com", 
         "password": "testpass123"
     }
     
@@ -32,12 +34,13 @@ def test_api_keys():
     print("\n1. 📝 Registering test user...")
     try:
         response = requests.post(f"{BASE_URL}/api/auth/register", json=test_user)
-        if response.status_code == 201:
+        if response.status_code in [200, 201]:
             print("✅ User registered successfully")
         elif response.status_code == 400:
             print("ℹ️  User already exists")
         else:
             print(f"❌ Registration failed: {response.status_code}")
+            print(f"   Response: {response.text}")
             return
     except Exception as e:
         print(f"❌ Registration error: {e}")
@@ -46,8 +49,8 @@ def test_api_keys():
     # Step 2: Login to get token
     print("\n2. 🔐 Logging in...")
     try:
-        login_data = {"username": test_user["username"], "password": test_user["password"]}
-        response = requests.post(f"{BASE_URL}/api/auth/login", data=login_data)
+        login_data = {"email": test_user["email"], "password": test_user["password"]}
+        response = requests.post(f"{BASE_URL}/api/auth/login", json=login_data)
         
         if response.status_code == 200:
             token_data = response.json()
